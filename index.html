@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>거시경제 자산배분 시뮬레이터</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Pretendard', sans-serif; }
+        .card { background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; }
+        .macro-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 12px; padding: 15px; text-align: center; }
+        .up-val { color: #ef4444; font-weight: bold; }
+        .down-val { color: #3b82f6; font-weight: bold; }
+        .hint-box { background-color: #064e3b; border-left: 5px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body class="p-4">
+
+<div class="container-fluid">
+    <!-- 헤더 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>📊 Macro Investment: 거시경제 자산배분 시뮬레이터</h2>
+            <p class="text-muted mb-0">거시경제 지표(금리, 환율, 경기국면)를 분석하여 포트폴리오 수익률을 극대화하세요.</p>
+        </div>
+        <button class="btn btn-outline-danger" onclick="initGame()">🔄 게임 초기화</button>
+    </div>
+
+    <!-- 거시경제 지표 카드 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="macro-card">
+                <div class="text-muted">📅 투자 연차</div>
+                <h3 id="ui-year">1 년차</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="macro-card">
+                <div class="text-muted">🏦 기준금리</div>
+                <h3 id="ui-rate">3.50%</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="macro-card">
+                <div class="text-muted">💱 원/달러 환율</div>
+                <h3 id="ui-exchange">1,300 원</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="macro-card">
+                <div class="text-muted">🔄 경기 국면</div>
+                <h3 id="ui-phase" style="color: #10b981;">회복 (Recovery)</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- 힌트 섹션 -->
+    <button class="btn btn-warning mb-3" onclick="toggleHint()">💡 애널리스트 힌트 & 투자 추천 보기</button>
+    <div id="hint-section" class="hint-box" style="display: none;">
+        <h5>💡 수석 애널리스트 리포트</h5>
+        <p id="hint-desc" class="mb-1"></p>
+        <p id="hint-rec" class="fw-bold mb-0"></p>
+    </div>
+
+    <div class="row g-4">
+        <!-- 메인: 포트폴리오 현황 -->
+        <div class="col-lg-8">
+            <div class="card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">💼 포트폴리오 현황</h4>
+                    <div>
+                        <span>총 평가액: <strong id="ui-total-val" class="text-warning">0 만원</strong></span> | 
+                        <span>보유 현금: <strong id="ui-cash" class="text-success">0 만원</strong></span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle text-center">
+                        <thead>
+                            <tr>
+                                <th>종목명</th>
+                                <th>보유수량</th>
+                                <th>평단가</th>
+                                <th>현재가</th>
+                                <th>평가금액</th>
+                                <th>수익률</th>
+                                <th>평가손익</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolio-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 우측: 자산 비중 도넛 차트 -->
+        <div class="col-lg-4">
+            <div class="card p-3 h-100 text-center">
+                <h4>🥧 자산 비중</h4>
+                <div style="max-width: 300px; margin: 0 auto;">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 매매 및 턴 진행 -->
+    <div class="row g-4 mt-1">
+        <div class="col-lg-8">
+            <div class="card p-3">
+                <h4>⚙️ 자산 매매 & 리밸런싱</h4>
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <select id="trade-asset" class="form-select bg-dark text-white border-secondary"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="trade-type" id="type-buy" value="buy" checked>
+                            <label class="btn btn-outline-success" for="type-buy">매수</label>
+                            <input type="radio" class="btn-check" name="trade-type" id="type-sell" value="sell">
+                            <label class="btn btn-outline-danger" for="type-sell">매도</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" id="trade-qty" class="form-content form-control bg-dark text-white border-secondary" value="10" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="executeTrade()">주문 실행</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card p-3 h-100 d-flex justify-content-center">
+                <button class="btn btn-success btn-lg w-100 py-3" onclick="nextTurn()">🚀 턴 종료 (1년 경과 및 시장 변동)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 추이 차트 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card p-3">
+                <h4>📈 연도별 자산 추이</h4>
+                <canvas id="lineChart" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 게임 초기 상태
+    let gameState = {
+        year: 1,
+        cash: 100000000,
+        rate: 3.5,
+        exchange: 1300,
+        phase: "회복 (Recovery)",
+        holdings: {
+            "국내 주식": { qty: 0, totalCost: 0 },
+            "미국 주식": { qty: 0, totalCost: 0 },
+            "국채(채권)": { qty: 0, totalCost: 0 },
+            "금(원자재)": { qty: 0, totalCost: 0 },
+            "부동산 리츠": { qty: 0, totalCost: 0 }
+        },
+        prices: {
+            "국내 주식": 100000,
+            "미국 주식": 130000,
+            "국채(채권)": 10000,
+            "금(원자재)": 80000,
+            "부동산 리츠": 50000
+        },
+        history: []
+    };
+
+    let pieChart, lineChart;
+
+    function initGame() {
+        gameState.year = 1;
+        gameState.cash = 100000000;
+        gameState.rate = 3.5;
+        gameState.exchange = 1300;
+        gameState.phase = "회복 (Recovery)";
+        for (let k in gameState.holdings) {
+            gameState.holdings[k] = { qty: 0, totalCost: 0 };
+        }
+        gameState.prices = { "국내 주식": 100000, "미국 주식": 130000, "국채(채권)": 10000, "금(원자재)": 80000, "부동산 리츠": 50000 };
+        gameState.history = [];
+        updateUI();
+    }
+
+    function toggleHint() {
+        const hintBox = document.getElementById("hint-section");
+        hintBox.style.display = hintBox.style.display === "none" ? "block" : "none";
+    }
+
+    function updateUI() {
+        document.getElementById("ui-year").innerText = `${gameState.year} 년차`;
+        document.getElementById("ui-rate").innerText = `${gameState.rate.toFixed(2)}%`;
+        document.getElementById("ui-exchange").innerText = `${gameState.exchange.toLocaleString()} 원`;
+        
+        const phaseElem = document.getElementById("ui-phase");
+        phaseElem.innerText = gameState.phase;
+        phaseElem.style.color = (gameState.phase.includes("호황") || gameState.phase.includes("회복")) ? "#10b981" : "#ef4444";
+
+        // 힌트 내용 업데이트
+        const hintDesc = document.getElementById("hint-desc");
+        const hintRec = document.getElementById("hint-rec");
+        if (gameState.phase.includes("호황")) {
+            hintDesc.innerText = "기업 실적이 호조를 보이고 소비가 증가하는 경기 확장기입니다.";
+            hintRec.innerText = "📈 추천 종목: 미국 주식, 국내 주식 (위험 자산 비중 확대)";
+        } else if (gameState.phase.includes("스태그플레이션")) {
+            hintDesc.innerText = "물가는 상승하지만 경기는 후퇴하는 유동성 위기 국면입니다.";
+            hintRec.innerText = "🥇 추천 종목: 금(원자재) (인플레이션 해지 자산)";
+        } else if (gameState.phase.includes("침체")) {
+            hintDesc.innerText = "경기 불황으로 금리 인하 가능성이 높습니다. 채권 가격 상승 가능성이 큽니다.";
+            hintRec.innerText = "🛡️ 추천 종목: 국채(채권) (안전 자산)";
+        } else {
+            hintDesc.innerText = "경기 저점을 지나 기업들의 가치가 정상화되는 단계입니다.";
+            hintRec.innerText = "🏢 추천 종목: 국내/미국 주식, 부동산 리츠";
+        }
+
+        // 포트폴리오 계산
+        let totalEval = gameState.cash;
+        const tbody = document.getElementById("portfolio-tbody");
+        tbody.innerHTML = "";
+
+        let chartLabels = [], chartData = [];
+
+        for (let k in gameState.holdings) {
+            let item = gameState.holdings[k];
+            let price = gameState.prices[k];
+            let evalAmt = item.qty * price;
+            totalEval += evalAmt;
+
+            let avgPrice = item.qty > 0 ? item.totalCost / item.qty : 0;
+            let profitAmt = evalAmt - item.totalCost;
+            let profitRate = item.qty > 0 ? (profitAmt / item.totalCost) * 100 : 0;
+
+            let rowClass = profitRate > 0 ? "up-val" : (profitRate < 0 ? "down-val" : "");
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${k}</td>
+                    <td>${item.qty.toLocaleString()}</td>
+                    <td>${item.qty > 0 ? Math.round(avgPrice).toLocaleString() + '원' : '-'}</td>
+                    <td>${price.toLocaleString()}원</td>
+                    <td>${Math.round(evalAmt / 10000).toLocaleString()}만원</td>
+                    <td class="${rowClass}">${profitRate.toFixed(2)}%</td>
+                    <td class="${rowClass}">${Math.round(profitAmt / 10000).toLocaleString()}만원</td>
+                </tr>
+            `;
+
+            if (evalAmt > 0) {
+                chartLabels.push(k);
+                chartData.push(evalAmt);
+            }
+        }
+
+        if (gameState.cash > 0) {
+            chartLabels.push("현금");
+            chartData.push(gameState.cash);
+        }
+
+        document.getElementById("ui-total-val").innerText = `${Math.round(totalEval / 10000).toLocaleString()} 만원`;
+        document.getElementById("ui-cash").innerText = `${Math.round(gameState.cash / 10000).toLocaleString()} 만원`;
+
+        updateSelectOptions();
+        updateCharts(chartLabels, chartData);
+    }
+
+    function updateSelectOptions() {
+        const select = document.getElementById("trade-asset");
+        if (select.children.length === 0) {
+            for (let k in gameState.prices) {
+                let opt = document.createElement("option");
+                opt.value = k;
+                opt.innerText = k;
+                select.appendChild(opt);
+            }
+        }
+    }
+
+    function executeTrade() {
+        const asset = document.getElementById("trade-asset").value;
+        const type = document.querySelector('input[name="trade-type"]:checked').value;
+        const qty = parseInt(document.getElementById("trade-qty").value);
+
+        if (!qty || qty <= 0) return alert("수량을 바르게 입력하세요.");
+
+        const price = gameState.prices[asset];
+        const cost = price * qty;
+
+        if (type === "buy") {
+            if (gameState.cash >= cost) {
+                gameState.cash -= cost;
+                gameState.holdings[asset].qty += qty;
+                gameState.holdings[asset].totalCost += cost;
+                alert(`${asset} ${qty}주 매수 완료!`);
+            } else {
+                alert("보유 현금이 부족합니다.");
+            }
+        } else {
+            if (gameState.holdings[asset].qty >= qty) {
+                let avgP = gameState.holdings[asset].totalCost / gameState.holdings[asset].qty;
+                gameState.cash += cost;
+                gameState.holdings[asset].qty -= qty;
+                gameState.holdings[asset].totalCost -= (avgP * qty);
+                alert(`${asset} ${qty}주 매도 완료!`);
+            } else {
+                alert("보유 수량이 부족합니다.");
+            }
+        }
+        updateUI();
+    }
+
+    function nextTurn() {
+        const phases = ["호황 (Expansion)", "스태그플레이션 (Stagflation)", "침체 (Recession)", "회복 (Recovery)"];
+        gameState.phase = phases[Math.floor(Math.random() * phases.length)];
+
+        gameState.rate = Math.max(1.0, Math.min(8.0, gameState.rate + (Math.random() * 2 - 1)));
+        gameState.exchange = Math.max(1000, Math.min(1600, gameState.exchange + (Math.random() * 160 - 80)));
+
+        let returns = {};
+        if (gameState.phase.includes("호황")) {
+            returns = { "국내 주식": 0.20, "미국 주식": 0.25, "국채(채권)": -0.03, "금(원자재)": 0.02, "부동산 리츠": 0.12 };
+        } else if (gameState.phase.includes("스태그플레이션")) {
+            returns = { "국내 주식": -0.18, "미국 주식": -0.10, "국채(채권)": -0.05, "금(원자재)": 0.30, "부동산 리츠": -0.10 };
+        } else if (gameState.phase.includes("침체")) {
+            returns = { "국내 주식": -0.22, "미국 주식": -0.15, "국채(채권)": 0.15, "금(원자재)": 0.00, "부동산 리츠": -0.15 };
+        } else {
+            returns = { "국내 주식": 0.12, "미국 주식": 0.15, "국채(채권)": 0.03, "금(원자재)": 0.03, "부동산 리츠": 0.08 };
+        }
+
+        for (let k in gameState.prices) {
+            let noise = (Math.random() * 0.1) - 0.05;
+            gameState.prices[k] = Math.max(1000, Math.round(gameState.prices[k] * (1 + returns[k] + noise)));
+        }
+
+        // 채권 이자 유입
+        let bondAmt = gameState.holdings["국채(채권)"].qty * gameState.prices["국채(채권)"];
+        gameState.cash += (bondAmt * (gameState.rate / 100));
+
+        // 기록 저장
+        let totalVal = gameState.cash;
+        for (let k in gameState.holdings) {
+            totalVal += gameState.holdings[k].qty * gameState.prices[k];
+        }
+
+        gameState.history.push({
+            year: `${gameState.year}년차`,
+            totalVal: Math.round(totalVal / 10000)
+        });
+
+        gameState.year++;
+        updateUI();
+    }
+
+    function updateCharts(pieLabels, pieData) {
+        // 도넛 차트
+        if (pieChart) pieChart.destroy();
+        const ctxPie = document.getElementById("pieChart").getContext("2d");
+        pieChart = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: pieLabels,
+                datasets: [{
+                    data: pieData,
+                    backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#64748b']
+                }]
+            },
+            options: { plugins: { legend: { labels: { color: '#fff' } } } }
+        });
+
+        // 라인 차트
+        if (lineChart) lineChart.destroy();
+        const ctxLine = document.getElementById("lineChart").getContext("2d");
+        lineChart = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: gameState.history.map(h => h.year),
+                datasets: [{
+                    label: '총 자산 평가액 (만원)',
+                    data: gameState.history.map(h => h.totalVal),
+                    borderColor: '#3b82f6',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: { ticks: { color: '#fff' } },
+                    y: { ticks: { color: '#fff' } }
+                },
+                plugins: { legend: { labels: { color: '#fff' } } }
+            }
+        });
+    }
+
+    // 게임 시작 시 초기화
+    initGame();
+</script>
+</body>
+</html>
