@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Macro Investment Terminal: 글로벌 자산배분 시뮬레이터</title>
+    <title>Macro Investment Terminal v3: 현실 기반 거시경제 시뮬레이터</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #090d16; color: #e2e8f0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; }
         .card { background-color: #131b2e; border: 1px solid #243049; color: #e2e8f0; border-radius: 12px; }
         
-        /* 실시간 뉴스 티커 스타일 */
+        /* 실시간 뉴스 티커 */
         .news-ticker-wrap {
             background: #1e293b;
             border-top: 1px solid #334155;
@@ -22,8 +22,8 @@
         }
         .news-ticker {
             display: inline-block;
-            animation: ticker 28s linear infinite;
-            font-size: 0.92rem;
+            animation: ticker 30s linear infinite;
+            font-size: 0.9rem;
             color: #fbbf24;
             font-weight: 500;
         }
@@ -38,5 +38,49 @@
             border: 1px solid #2a3958;
             border-radius: 12px;
             padding: 14px;
-            text-align:
-                
+            text-align: center;
+        }
+
+        /* 언론사 스타일 뉴스 카드 */
+        .press-card {
+            background-color: #172033;
+            border-left: 4px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .press-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .up-val { color: #f87171; font-weight: 700; }
+        .down-val { color: #60a5fa; font-weight: 700; }
+        .hint-box { background-color: #064e3b; border-left: 4px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 18px; }
+        .log-box { max-height: 200px; overflow-y: auto; font-size: 0.84rem; }
+    </style>
+</head>
+<body>
+
+<!-- 상단 실시간 속보 티커 -->
+<div class="news-ticker-wrap">
+    <div class="news-ticker" id="ui-ticker">
+        🔴 [속보] 글로벌 중앙은행 통화정책 회의 주목... 원/달러 환율 및 원자재 시장 변동성 확대 전망
+    </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+    <!-- 헤더 -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h3 class="fw-bold mb-1">📈 Macro Terminal <span class="badge bg-primary fs-6">Realistic Edition</span></h3>
+            <p class="text-secondary mb-0 small">현실적인 기대수익률과 평균 회귀 모델이 적용된 장기 거시경제 자산배분 시뮬레이터입니다.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-warning fw-bold" onclick="showReportModal()">🏆 현재 성적표/등급 확인</button>
+            <button class="btn btn-sm btn-outline-info" onclick="toggleHint()">💡 애널리스트 분석</button>
+            <button class="btn btn-sm btn-outline-success" onclick="saveGame()">💾 저장</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="reset
